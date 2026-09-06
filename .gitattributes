@@ -1,0 +1,11 @@
+# Normalise line endings so that a clone on Windows, macOS or Linux produces
+# byte-identical source files. Shell scripts and Dockerfiles in particular break
+# when they are checked out with CRLF.
+* text=auto eol=lf
+
+# Explicitly binary, so Git never tries to convert them.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

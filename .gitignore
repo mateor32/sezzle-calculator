@@ -1,0 +1,32 @@
+# ---- Node / frontend ---------------------------------------------------------
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# Local environment overrides. The committed example stays.
+.env
+.env.local
+.env.*.local
+
+# ---- Go / backend ------------------------------------------------------------
+# Compiled binaries.
+bin/
+backend/server
+backend/server.exe
+*.exe
+*.test
+*.out
+
+# Coverage artefacts.
+coverage.out
+coverage.html
+
+# ---- Editors and operating systems -------------------------------------------
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

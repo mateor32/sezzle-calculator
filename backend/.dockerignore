@@ -1,0 +1,16 @@
+# Keep the build context to the Go sources only.
+Dockerfile
+.dockerignore
+README.md
+*.md
+
+# Local build output and coverage reports.
+bin/
+coverage.out
+coverage.html
+
+# Editor and OS noise.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
