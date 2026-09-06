@@ -461,6 +461,16 @@ go tool cover -func=coverage.out           # per-function summary in the termina
 go tool cover -html=coverage.out           # open an annotated report in a browser
 ```
 
+> **Windows PowerShell users:** Windows PowerShell 5.1 splits an argument on its
+> `=` sign, so the flags above have to be quoted or Go receives a broken package
+> path. PowerShell 7 (`pwsh`), Git Bash and `cmd` are unaffected.
+>
+> ```powershell
+> go test "-coverprofile=coverage.out" ./...
+> go tool cover "-func=coverage.out"
+> go tool cover "-html=coverage.out" -o coverage.html
+> ```
+
 The backend suite covers the arithmetic of every operation, each mathematical
 edge case (division by zero, negative square roots, overflow, results that are
 not real numbers), request validation, malformed bodies, routing, and the CORS
