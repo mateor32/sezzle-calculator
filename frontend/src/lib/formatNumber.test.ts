@@ -1,4 +1,4 @@
-import { formatNumber } from './formatNumber';
+import { formatNumber, groupThousands } from './formatNumber';
 
 describe('formatNumber', () => {
   it.each([
@@ -46,5 +46,42 @@ describe('formatNumber', () => {
     expect(formatNumber(Number.NaN)).toBe('Not a number');
     expect(formatNumber(Number.POSITIVE_INFINITY)).toBe('Infinity');
     expect(formatNumber(Number.NEGATIVE_INFINITY)).toBe('-Infinity');
+  });
+});
+
+describe('groupThousands', () => {
+  it.each([
+    ['0', '0'],
+    ['1', '1'],
+    ['999', '999'],
+    ['1000', '1,000'],
+    ['1234567', '1,234,567'],
+    ['-1234567', '-1,234,567'],
+  ])('groups %p as %p', (input, expected) => {
+    expect(groupThousands(input)).toBe(expected);
+  });
+
+  it('groups only the whole part of a decimal', () => {
+    expect(groupThousands('1234567.891')).toBe('1,234,567.891');
+  });
+
+  // The separator must survive as the user types it, or pressing "." would
+  // appear to do nothing.
+  it('keeps a trailing decimal point', () => {
+    expect(groupThousands('1234.')).toBe('1,234.');
+  });
+
+  it('keeps trailing zeros in a decimal being typed', () => {
+    expect(groupThousands('1.500')).toBe('1.500');
+  });
+
+  it('leaves exponential notation alone', () => {
+    expect(groupThousands('1.2e+21')).toBe('1.2e+21');
+  });
+
+  it('passes through values it cannot group', () => {
+    expect(groupThousands('')).toBe('');
+    expect(groupThousands('Infinity')).toBe('Infinity');
+    expect(groupThousands('Not a number')).toBe('Not a number');
   });
 });

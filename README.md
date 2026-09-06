@@ -9,8 +9,13 @@ frontend has no arithmetic of its own, and they meet at a single JSON endpoint.
 
 - **Backend** — Go with the standard `net/http` library, no third-party
   dependencies at all.
-- **Frontend** — React 18 with TypeScript, built by Vite, tested with Jest and
-  React Testing Library.
+- **Frontend** — React 18 with TypeScript, styled with Tailwind CSS v4, built by
+  Vite, tested with Jest and React Testing Library.
+
+The interface is a keypad calculator with three palettes and full keyboard
+support. Its visual design follows the [Frontend Mentor calculator app
+challenge](https://www.frontendmentor.io/challenges/calculator-app-9lteq5N29);
+the implementation, the state model and the API behind it are original.
 
 ---
 
@@ -62,23 +67,30 @@ frontend has no arithmetic of its own, and they meet at a single JSON endpoint.
 │   │   │   ├── calculatorClient.ts       The only module that calls fetch
 │   │   │   └── calculatorClient.test.ts
 │   │   ├── components/
-│   │   │   ├── Calculator.tsx            The form; the only stateful component
+│   │   │   ├── Calculator.tsx            Orchestration: key presses to requests
 │   │   │   ├── Calculator.test.tsx
-│   │   │   ├── OperandField.tsx          One labelled numeric input
-│   │   │   ├── OperationSelector.tsx     The operation dropdown
-│   │   │   └── ResultPanel.tsx           Result, error or idle hint
+│   │   │   ├── Display.tsx               The screen: expression, value, errors
+│   │   │   ├── Keypad.tsx                The button grid
+│   │   │   └── ThemeSwitcher.tsx         The three-position palette switch
 │   │   ├── domain/
-│   │   │   └── operations.ts             Operation catalogue: labels, arity, expressions
+│   │   │   ├── keypad.ts                 Key layout, variants, keyboard shortcuts
+│   │   │   ├── operations.ts             Operation catalogue: symbols, arity
+│   │   │   └── operations.test.ts
+│   │   ├── hooks/
+│   │   │   └── useTheme.ts               Palette selection, persisted locally
 │   │   ├── lib/
-│   │   │   ├── formatNumber.ts           Display formatting for results
+│   │   │   ├── formatNumber.ts           Result formatting and digit grouping
 │   │   │   ├── formatNumber.test.ts
+│   │   │   ├── keypadState.ts            Pure typing rules for the keypad
+│   │   │   ├── keypadState.test.ts
 │   │   │   ├── validation.ts             Client-side validation rules
 │   │   │   └── validation.test.ts
 │   │   ├── types/
 │   │   │   └── calculator.ts             The API contract, in TypeScript
-│   │   ├── App.tsx                       Page shell
+│   │   ├── App.tsx                       Page shell and palette switch
+│   │   ├── App.test.tsx
 │   │   ├── config.ts                     API base URL and request timeout
-│   │   ├── index.css                     The single stylesheet
+│   │   ├── index.css                     Tailwind entry and the three palettes
 │   │   ├── main.tsx                      Mounts the app
 │   │   └── setupTests.ts                 Jest setup: matchers and the fetch stub
 │   ├── Dockerfile                        Builds the bundle, serves it with nginx
@@ -86,7 +98,7 @@ frontend has no arithmetic of its own, and they meet at a single JSON endpoint.
 │   ├── babel.config.cjs                  Used by Jest only
 │   ├── jest.config.cjs
 │   ├── tsconfig.json
-│   └── vite.config.ts
+│   └── vite.config.ts                    React, Tailwind and the injected API URL
 │
 ├── docker-compose.yml               Runs both services together
 └── README.md
@@ -495,10 +507,12 @@ npm run test:coverage
 A summary is printed in the terminal and a browsable report is written to
 `coverage/lcov-report/index.html`.
 
-The frontend suite covers the validation rules, the display formatter, the API
-client (request shape, error mapping, network failures, timeouts, cancellation)
-and the calculator component (rendering, client-side validation, successful
-calculations, every error path and the pending state).
+The frontend suite covers the keypad typing rules, the validation rules, the
+display formatter and digit grouping, the operation catalogue, the API client
+(request shape, error mapping, network failures, timeouts, cancellation), the
+palette switch and its persistence, and the calculator itself: entering numbers,
+every operation, chained operations, client-side validation, each error path,
+the pending state and the keyboard shortcuts.
 
 ---
 
@@ -568,33 +582,64 @@ otherwise be serialised as `-0` and displayed as such.
 
 ### Frontend
 
-**Operands are text inputs with `inputMode="decimal"`, not `type="number"`.** A
-number input discards characters the browser considers invalid before the change
-event fires, which makes it impossible to explain *why* an entry was rejected,
-and it changes its value when the mouse wheel moves over it. Keeping the raw
-string means validation owns every decision, while mobile keyboards still open
-on the numeric layout.
+**A keypad, not a form.** Digits accumulate into an operand, an operator key
+commits it, and `=` sends the pair. That maps one to one onto the API's
+`{operation, a, b}` body while giving the interaction people expect from
+something called a calculator. The square root key is the exception: being
+unary, it applies immediately to whatever is on screen, exactly as it does on a
+physical calculator.
 
-**Client-side validation duplicates exactly two domain rules.** Empty and
-non-numeric input, division by zero and the square root of a negative number are
-caught before a request is made, because those are the mistakes a user actually
-makes and a round trip to be told so is wasteful. Everything else is left to the
-server, so the two implementations cannot drift far apart. The server validates
-every request again regardless: the client is a convenience, never the
-authority.
+**The typing rules are pure functions.** `lib/keypadState.ts` owns how digits
+accumulate, how the leading zero is replaced, how a second decimal point is
+refused and what the display should read. It has no React and no network in it,
+so the fiddliest logic in the app is tested directly rather than through the
+DOM. What is left in the component is the decision of *when* a key press means a
+calculation.
+
+**Chained operations settle as they go.** Pressing a second operator while one
+is pending evaluates the first, so `2 + 3 × 4` accumulates the way a user
+expects instead of silently dropping a step.
+
+**Client-side validation duplicates exactly two domain rules.** Division by zero
+and the square root of a negative number are caught before a request is made,
+because those are the mistakes a user actually makes and a round trip to be told
+so is wasteful. Everything else is left to the server, so the two
+implementations cannot drift far apart. The server validates every request again
+regardless: the client is a convenience, never the authority.
 
 **Results are formatted for reading.** The API returns the full `float64`, which
 is correct, but showing `0.30000000000000004` for `0.1 + 0.2` is noise. The UI
-rounds to twelve significant digits and falls back to exponential notation
-outside a sensible magnitude range.
+rounds to twelve significant digits, falls back to exponential notation outside
+a sensible magnitude range, and groups thousands. Grouping runs on the raw entry
+string rather than on a number so that a half-typed `1234.` keeps the decimal
+point the user just pressed.
 
-**Requests are cancellable and cannot land out of order.** Each submission
+**Requests are cancellable and cannot land out of order.** Each calculation
 carries a request id and an `AbortController`; a superseded response is
-discarded and an in-flight request is aborted when the component unmounts.
+discarded and an in-flight request is aborted when the component unmounts. The
+keypad deliberately stays enabled while a request is in flight — locking it for
+the length of a network timeout would strand the user with no way to press
+RESET.
 
-**No UI framework and no CSS library.** One stylesheet with custom properties
-covers the theme, the dark mode and the responsive layout. For a form this size
-a dependency would add more to review than it removes.
+**Three palettes, one attribute.** Every colour is a CSS custom property
+redefined under a `[data-theme]` selector on `<html>`, and Tailwind's
+`@theme inline` maps those onto utilities such as `bg-keypad` and `text-ink`.
+Because the utilities compile to `var(--keypad)` rather than to a literal
+colour, switching palettes reskins the app with no re-render and no duplicated
+class names. The choice is stored in `localStorage` and applied by a tiny inline
+script in `index.html` before first paint, so a stored palette never flashes the
+default one.
+
+**The keyboard drives the whole calculator.** Digits, `+ - * / ^ %`, `r` for the
+square root, `Enter`, `Backspace` and `Escape` all work. The shortcuts live
+beside each key definition in `domain/keypad.ts` so the two cannot drift, and
+`Enter` and `Space` are left alone while a button has focus, because the browser
+already activates it and handling the event twice would run the action twice.
+
+**Accessibility is not left to the visuals.** The palette switch is a real radio
+group rather than a styled slider, errors carry `role="alert"` so they are
+announced immediately, the result sits in a polite live region, and symbol-only
+keys carry spelled-out accessible names ("Square root", not "√").
 
 ### CORS
 
@@ -624,10 +669,21 @@ network failure.
 
 ### Deliberate omissions
 
-Persistence, authentication, rate limiting, a calculation history and
-internationalisation are all absent. None is needed to evaluate the brief, and
-each would add surface area to review. The brief asked for correctness, clarity
-and maintainability ahead of extra features.
+Server-side persistence, authentication, rate limiting, a calculation history
+and internationalisation are all absent. None is needed to evaluate the brief,
+and each would add surface area to review. The brief asked for correctness,
+clarity and maintainability ahead of extra features.
+
+The only thing kept in the browser is the chosen palette, in `localStorage`.
+Nothing is sent anywhere but the calculation itself.
+
+### Third-party assets
+
+The typeface is [League Spartan](https://fonts.google.com/specimen/League+Spartan)
+from Google Fonts, requested in `index.html`. If it cannot be reached the stack
+in `index.css` falls back to the system sans-serif and the layout is unaffected.
+The visual design follows the Frontend Mentor calculator app challenge, credited
+at the top of this file.
 
 ---
 

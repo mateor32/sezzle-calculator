@@ -44,6 +44,35 @@ export function formatNumber(value: number): string {
 }
 
 /**
+ * Inserts thousand separators into a value that is being displayed.
+ *
+ * It works on the raw entry string rather than on a number so that a partially
+ * typed value keeps its shape: "12." stays "12." instead of collapsing to "12"
+ * and swallowing the decimal point the user just pressed. Values already in
+ * exponential notation are left alone.
+ */
+export function groupThousands(entry: string): string {
+  if (entry === '' || entry.includes('e') || entry.includes('E')) {
+    return entry;
+  }
+
+  const negative = entry.startsWith('-');
+  const body = negative ? entry.slice(1) : entry;
+
+  const separatorIndex = body.indexOf('.');
+  const wholePart = separatorIndex === -1 ? body : body.slice(0, separatorIndex);
+  const fractionPart = separatorIndex === -1 ? '' : body.slice(separatorIndex);
+
+  // Only digits are grouped; anything else is passed through untouched.
+  if (!/^\d*$/.test(wholePart)) {
+    return entry;
+  }
+
+  const grouped = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${negative ? '-' : ''}${grouped}${fractionPart}`;
+}
+
+/**
  * Removes the padding zeros that `toPrecision` and `toExponential` add, leaving
  * the exponent suffix untouched.
  */

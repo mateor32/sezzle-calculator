@@ -17,17 +17,17 @@ export type OperandParseResult =
   | { ok: false; message: string };
 
 export const OPERAND_MESSAGES = {
-  required: 'Enter a number.',
-  notANumber: 'Enter a valid number, for example 12, -3.5 or 1e3.',
-  notFinite: 'This number is too large to calculate with.',
+  required: 'Enter a number first.',
+  notANumber: 'That is not a valid number.',
+  notFinite: 'That number is too large to calculate with.',
 } as const;
 
 export const DOMAIN_MESSAGES = {
   divisionByZero: 'Cannot divide by zero.',
-  negativeSquareRoot: 'The square root of a negative number is not a real number.',
+  negativeSquareRoot: 'No real square root for a negative number.',
 } as const;
 
-/** Parses a raw input value into a finite number. */
+/** Parses a raw entry into a finite number. */
 export function parseOperand(raw: string): OperandParseResult {
   const trimmed = raw.trim();
 
@@ -49,69 +49,40 @@ export function parseOperand(raw: string): OperandParseResult {
   return { ok: true, value };
 }
 
-/** Validation errors keyed by the field they belong to. */
-export interface FormErrors {
-  a?: string;
-  b?: string;
-}
-
-/** The operands to send, produced only when the form has no errors. */
-export interface ValidatedOperands {
-  a: number;
-  b?: number;
-}
-
-export type ValidationResult =
-  | { ok: true; operands: ValidatedOperands }
-  | { ok: false; errors: FormErrors };
+export type CalculationCheck = { ok: true } | { ok: false; message: string };
 
 /**
- * Validates the whole form for the selected operation.
+ * Checks a calculation before it is sent.
  *
- * The second operand is ignored entirely for unary operations, so leftover text
- * in a hidden field can never block a submission.
+ * `b` is ignored for unary operations, so a value left over from a previous
+ * calculation can never block one.
  */
-export function validateForm(
+export function validateCalculation(
   operation: OperationId,
-  rawA: string,
-  rawB: string,
-): ValidationResult {
+  a: number,
+  b?: number,
+): CalculationCheck {
   const { arity } = getOperation(operation);
-  const errors: FormErrors = {};
 
-  // A value is only captured on the branch where it passed every check, which
-  // is what lets the guard at the end tell a valid form from an invalid one.
-  let a: number | undefined;
-  let b: number | undefined;
+  if (!Number.isFinite(a)) {
+    return { ok: false, message: OPERAND_MESSAGES.notFinite };
+  }
 
-  const parsedA = parseOperand(rawA);
-  if (!parsedA.ok) {
-    errors.a = parsedA.message;
-  } else if (operation === 'sqrt' && parsedA.value < 0) {
-    errors.a = DOMAIN_MESSAGES.negativeSquareRoot;
-  } else {
-    a = parsedA.value;
+  if (operation === 'sqrt' && a < 0) {
+    return { ok: false, message: DOMAIN_MESSAGES.negativeSquareRoot };
   }
 
   if (arity === 2) {
-    const parsedB = parseOperand(rawB);
-    if (!parsedB.ok) {
-      errors.b = parsedB.message;
-    } else if (operation === 'divide' && parsedB.value === 0) {
-      errors.b = DOMAIN_MESSAGES.divisionByZero;
-    } else {
-      b = parsedB.value;
+    if (b === undefined) {
+      return { ok: false, message: OPERAND_MESSAGES.required };
+    }
+    if (!Number.isFinite(b)) {
+      return { ok: false, message: OPERAND_MESSAGES.notFinite };
+    }
+    if (operation === 'divide' && b === 0) {
+      return { ok: false, message: DOMAIN_MESSAGES.divisionByZero };
     }
   }
 
-  if (a === undefined || (arity === 2 && b === undefined)) {
-    return { ok: false, errors };
-  }
-
-  const operands: ValidatedOperands = { a };
-  if (b !== undefined) {
-    operands.b = b;
-  }
-
-  return { ok: true, operands };
+  return { ok: true };
 }

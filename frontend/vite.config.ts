@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 /**
  * The API base URL is injected as a compile-time constant rather than read from
@@ -10,6 +11,9 @@ import react from '@vitejs/plugin-react';
  *  - a plain identifier is trivially replaceable, which lets `src/config.ts`
  *    fall back to a default when the constant was never defined (the case in
  *    the test environment).
+ *
+ * In development Vite exposes it as a global; in a build it is substituted into
+ * the source. Both are handled by the `typeof` guard in src/config.ts.
  */
 export default defineConfig(({ mode }) => {
   // The empty prefix makes `loadEnv` consider real environment variables too,
@@ -18,7 +22,7 @@ export default defineConfig(({ mode }) => {
   const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
   return {
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
     define: {
       __API_BASE_URL__: JSON.stringify(apiBaseUrl),
     },

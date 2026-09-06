@@ -1,13 +1,8 @@
 import { OPERATION_IDS } from '../types/calculator';
-import {
-  DEFAULT_OPERATION_ID,
-  OPERATIONS,
-  getOperation,
-  isOperationId,
-} from './operations';
+import { OPERATIONS, getOperation, isOperationId } from './operations';
 
 describe('the operation catalogue', () => {
-  it('holds exactly one descriptor per supported operation, in display order', () => {
+  it('holds exactly one descriptor per supported operation', () => {
     expect(OPERATIONS.map((operation) => operation.id)).toEqual([...OPERATION_IDS]);
   });
 
@@ -18,8 +13,8 @@ describe('the operation catalogue', () => {
     }
   });
 
-  // The arity here decides whether the UI shows a second input and whether the
-  // request carries a "b", so it has to match the API exactly.
+  // The arity here decides whether the keypad waits for a second operand and
+  // whether the request carries a "b", so it has to match the API exactly.
   it.each([
     ['add', 2],
     ['subtract', 2],
@@ -32,12 +27,16 @@ describe('the operation catalogue', () => {
     expect(getOperation(id).arity).toBe(arity);
   });
 
-  it('only labels a second operand for binary operations', () => {
-    for (const operation of OPERATIONS) {
-      if (operation.arity === 1) {
-        expect(operation.secondOperandLabel).toBeUndefined();
-      }
-    }
+  it.each([
+    ['add', '+'],
+    ['subtract', '−'],
+    ['multiply', '×'],
+    ['divide', '÷'],
+    ['power', '^'],
+    ['sqrt', '√'],
+    ['percentage', '%'],
+  ] as const)('prints %s as %s', (id, symbol) => {
+    expect(getOperation(id).symbol).toBe(symbol);
   });
 
   it.each([
@@ -52,11 +51,6 @@ describe('the operation catalogue', () => {
     ['percentage', '3% of 2'],
   ] as const)('renders the expression of %s', (id, expected) => {
     expect(getOperation(id).expression('2', '3')).toBe(expected);
-  });
-
-  it('defaults to an operation that exists', () => {
-    expect(isOperationId(DEFAULT_OPERATION_ID)).toBe(true);
-    expect(getOperation(DEFAULT_OPERATION_ID)).toBeDefined();
   });
 });
 

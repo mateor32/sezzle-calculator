@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="3">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,8 +7,32 @@
       name="description"
       content="A calculator user interface backed by a Go REST API."
     />
-    <meta name="color-scheme" content="light dark" />
-    <title>Calculator</title>
+    <title>calc</title>
+
+    <!--
+      League Spartan is what gives the keypad its look. The preconnect pair
+      shaves a round trip off the font request, and the stack in index.css
+      degrades to the system sans-serif if Google Fonts cannot be reached.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      // Applied before first paint so the stored theme never flashes the
+      // default one. Kept inline and tiny on purpose.
+      try {
+        var storedTheme = localStorage.getItem('calc:theme');
+        if (storedTheme === '1' || storedTheme === '2' || storedTheme === '3') {
+          document.documentElement.dataset.theme = storedTheme;
+        }
+      } catch (error) {
+        // Storage can be blocked; the default theme in the markup still applies.
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

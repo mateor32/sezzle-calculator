@@ -2,7 +2,7 @@ import {
   DOMAIN_MESSAGES,
   OPERAND_MESSAGES,
   parseOperand,
-  validateForm,
+  validateCalculation,
 } from './validation';
 
 describe('parseOperand', () => {
@@ -14,7 +14,7 @@ describe('parseOperand', () => {
     ['zero', '0', 0],
     ['exponential notation', '1e3', 1000],
     ['a value padded with spaces', '  7  ', 7],
-    ['a leading plus sign', '+5', 5],
+    ['a trailing decimal point', '12.', 12],
     ['a value without a leading zero', '.5', 0.5],
   ])('accepts %s', (_label, input, expected) => {
     expect(parseOperand(input)).toEqual({ ok: true, value: expected });
@@ -29,115 +29,83 @@ describe('parseOperand', () => {
     ['a lone minus sign', '-', OPERAND_MESSAGES.notANumber],
     ['two decimal points', '1.2.3', OPERAND_MESSAGES.notANumber],
     ['infinity', 'Infinity', OPERAND_MESSAGES.notFinite],
-    ['negative infinity', '-Infinity', OPERAND_MESSAGES.notFinite],
     ['a magnitude beyond float64', '1e400', OPERAND_MESSAGES.notFinite],
   ])('rejects %s', (_label, input, message) => {
     expect(parseOperand(input)).toEqual({ ok: false, message });
   });
 });
 
-describe('validateForm', () => {
-  it('accepts two valid operands for a binary operation', () => {
-    expect(validateForm('add', '2', '3')).toEqual({
-      ok: true,
-      operands: { a: 2, b: 3 },
-    });
+describe('validateCalculation', () => {
+  it.each([
+    ['add', 2, 3],
+    ['subtract', 2, 3],
+    ['multiply', 2, 3],
+    ['divide', 10, 4],
+    ['power', 2, 10],
+    ['percentage', 200, 10],
+  ] as const)('accepts a valid %s', (operation, a, b) => {
+    expect(validateCalculation(operation, a, b)).toEqual({ ok: true });
   });
 
-  it('omits the second operand for a unary operation', () => {
-    expect(validateForm('sqrt', '9', '')).toEqual({
-      ok: true,
-      operands: { a: 9 },
-    });
+  it('accepts a unary operation without a second operand', () => {
+    expect(validateCalculation('sqrt', 9)).toEqual({ ok: true });
   });
 
-  it('ignores leftover text in the second field of a unary operation', () => {
-    expect(validateForm('sqrt', '16', 'nonsense')).toEqual({
-      ok: true,
-      operands: { a: 16 },
-    });
+  it('ignores a leftover second operand on a unary operation', () => {
+    expect(validateCalculation('sqrt', 9, 99)).toEqual({ ok: true });
   });
 
-  it('reports a missing first operand', () => {
-    expect(validateForm('add', '', '3')).toEqual({
+  it('rejects a division by zero', () => {
+    expect(validateCalculation('divide', 10, 0)).toEqual({
       ok: false,
-      errors: { a: OPERAND_MESSAGES.required },
-    });
-  });
-
-  it('reports a missing second operand', () => {
-    expect(validateForm('add', '2', '')).toEqual({
-      ok: false,
-      errors: { b: OPERAND_MESSAGES.required },
-    });
-  });
-
-  it('reports both operands at once', () => {
-    expect(validateForm('multiply', 'x', 'y')).toEqual({
-      ok: false,
-      errors: {
-        a: OPERAND_MESSAGES.notANumber,
-        b: OPERAND_MESSAGES.notANumber,
-      },
-    });
-  });
-
-  it('rejects a division by zero without a round trip', () => {
-    expect(validateForm('divide', '10', '0')).toEqual({
-      ok: false,
-      errors: { b: DOMAIN_MESSAGES.divisionByZero },
+      message: DOMAIN_MESSAGES.divisionByZero,
     });
   });
 
   it('rejects a division by negative zero', () => {
-    expect(validateForm('divide', '10', '-0')).toEqual({
+    expect(validateCalculation('divide', 10, -0)).toEqual({
       ok: false,
-      errors: { b: DOMAIN_MESSAGES.divisionByZero },
+      message: DOMAIN_MESSAGES.divisionByZero,
     });
   });
 
   it('allows a zero dividend', () => {
-    expect(validateForm('divide', '0', '5')).toEqual({
-      ok: true,
-      operands: { a: 0, b: 5 },
-    });
+    expect(validateCalculation('divide', 0, 5)).toEqual({ ok: true });
   });
 
   it('rejects the square root of a negative number', () => {
-    expect(validateForm('sqrt', '-9', '')).toEqual({
+    expect(validateCalculation('sqrt', -9)).toEqual({
       ok: false,
-      errors: { a: DOMAIN_MESSAGES.negativeSquareRoot },
+      message: DOMAIN_MESSAGES.negativeSquareRoot,
     });
   });
 
   it('allows the square root of zero', () => {
-    expect(validateForm('sqrt', '0', '')).toEqual({
-      ok: true,
-      operands: { a: 0 },
-    });
+    expect(validateCalculation('sqrt', 0)).toEqual({ ok: true });
   });
 
-  it('prefers the parse error over the domain rule when the operand is not a number', () => {
-    expect(validateForm('divide', '10', 'zero')).toEqual({
+  it('reports a missing second operand for a binary operation', () => {
+    expect(validateCalculation('add', 2)).toEqual({
       ok: false,
-      errors: { b: OPERAND_MESSAGES.notANumber },
+      message: OPERAND_MESSAGES.required,
     });
   });
 
-  it.each(['power', 'percentage'] as const)(
-    'treats %s as a binary operation',
-    (operation) => {
-      expect(validateForm(operation, '2', '')).toEqual({
-        ok: false,
-        errors: { b: OPERAND_MESSAGES.required },
-      });
-    },
-  );
-
-  it('accepts negative operands for operations that allow them', () => {
-    expect(validateForm('percentage', '-200', '10')).toEqual({
-      ok: true,
-      operands: { a: -200, b: 10 },
+  it.each([
+    ['the first operand', Number.POSITIVE_INFINITY, 1],
+    ['the second operand', 1, Number.POSITIVE_INFINITY],
+  ])('rejects a non-finite value in %s', (_label, a, b) => {
+    expect(validateCalculation('add', a, b)).toEqual({
+      ok: false,
+      message: OPERAND_MESSAGES.notFinite,
     });
+  });
+
+  // Zero is a perfectly good operand everywhere except as a divisor, and a
+  // negative one is fine everywhere except under a square root.
+  it('allows zero and negative operands for the other operations', () => {
+    expect(validateCalculation('add', -5, 0)).toEqual({ ok: true });
+    expect(validateCalculation('multiply', 0, -3)).toEqual({ ok: true });
+    expect(validateCalculation('percentage', -200, 0)).toEqual({ ok: true });
   });
 });

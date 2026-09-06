@@ -2,88 +2,80 @@ import { OPERATION_IDS, type OperationId } from '../types/calculator';
 
 /**
  * Everything the UI needs to know about one operation: how to label it, how
- * many operands it takes and how to preview the expression it will send.
+ * many operands it takes and how to render it in an expression.
  *
- * Keeping this in a single catalogue means the selector, the operand fields,
- * the validation rules and the result preview can never disagree about the
- * arity of an operation.
+ * Keeping this in a single catalogue means the keypad, the display and the
+ * validation rules can never disagree about the arity of an operation.
  */
 export interface OperationDescriptor {
   id: OperationId;
-  /** Label shown in the operation selector. */
+  /** Long form, used for accessible names and tooltips. */
   label: string;
-  /** Operator symbol used when previewing the expression. */
+  /** The character printed on the key and shown in the expression line. */
   symbol: string;
   arity: 1 | 2;
-  /** Accessible label of the second operand input; unset for unary operations. */
-  secondOperandLabel?: string;
-  /** Renders a human readable expression from the two raw input values. */
+  /** Renders a human readable expression from two raw operand strings. */
   expression: (a: string, b: string) => string;
 }
 
 const DESCRIPTORS: Record<OperationId, OperationDescriptor> = {
   add: {
     id: 'add',
-    label: 'Addition (a + b)',
+    label: 'Add',
     symbol: '+',
     arity: 2,
     expression: (a, b) => `${a} + ${b}`,
   },
   subtract: {
     id: 'subtract',
-    label: 'Subtraction (a − b)',
+    label: 'Subtract',
     symbol: '−',
     arity: 2,
     expression: (a, b) => `${a} − ${b}`,
   },
   multiply: {
     id: 'multiply',
-    label: 'Multiplication (a × b)',
+    label: 'Multiply',
     symbol: '×',
     arity: 2,
     expression: (a, b) => `${a} × ${b}`,
   },
   divide: {
     id: 'divide',
-    label: 'Division (a ÷ b)',
+    label: 'Divide',
     symbol: '÷',
     arity: 2,
     expression: (a, b) => `${a} ÷ ${b}`,
   },
   power: {
     id: 'power',
-    label: 'Exponentiation (a ^ b)',
+    label: 'Raise to the power of',
     symbol: '^',
     arity: 2,
-    secondOperandLabel: 'Exponent (b)',
     expression: (a, b) => `${a} ^ ${b}`,
   },
   sqrt: {
     id: 'sqrt',
-    label: 'Square root (√a)',
+    label: 'Square root',
     symbol: '√',
     arity: 1,
     expression: (a) => `√${a}`,
   },
   percentage: {
-    id: 'percentage',
     // The API defines this as "b percent of a"; the label spells that out so
     // the operand order is never a guess.
-    label: 'Percentage (b% of a)',
+    id: 'percentage',
+    label: 'Percentage, b percent of a',
     symbol: '%',
     arity: 2,
-    secondOperandLabel: 'Percentage (b)',
     expression: (a, b) => `${b}% of ${a}`,
   },
 };
 
-/** Every operation, in display order. */
+/** Every operation, in the order declared by the API contract. */
 export const OPERATIONS: readonly OperationDescriptor[] = OPERATION_IDS.map(
   (id) => DESCRIPTORS[id],
 );
-
-/** The operation selected when the app first loads. */
-export const DEFAULT_OPERATION_ID: OperationId = 'add';
 
 /** Resolves an operation id to its descriptor. */
 export function getOperation(id: OperationId): OperationDescriptor {

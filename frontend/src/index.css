@@ -1,263 +1,140 @@
+@import 'tailwindcss';
+
 /*
- * A single stylesheet keeps the styling story simple for a UI of this size: no
- * build-time CSS pipeline, no runtime cost, and one place to look.
+ * Theming
+ * =======
  *
- * Colours are declared as custom properties on :root and redefined under a
- * prefers-color-scheme query, so the dark theme is a palette swap rather than a
- * second set of rules.
+ * Every colour is a plain CSS custom property redefined under a [data-theme]
+ * attribute on <html>, and `@theme inline` maps those properties onto Tailwind
+ * utilities. "inline" is the important part: it makes utilities such as
+ * `bg-keypad` compile to `var(--keypad)` rather than to a literal colour, so
+ * switching the attribute reskins the whole app with no re-render and no
+ * duplicated class names.
  */
+@theme inline {
+  --color-app: var(--app);
+  --color-screen: var(--screen);
+  --color-keypad: var(--keypad);
 
-:root {
-  --surface: #ffffff;
-  --surface-sunken: #f4f5f7;
-  --border: #d8dbe0;
-  --border-strong: #b3b8c2;
-  --text: #16181d;
-  --text-muted: #5c6270;
-  --accent: #2f5bea;
-  --accent-contrast: #ffffff;
-  --accent-hover: #2447bd;
-  --danger: #b3261e;
-  --danger-surface: #fdecea;
-  --danger-border: #f1b0ab;
-  --success-surface: #eef2fe;
-  --success-border: #c3d0f8;
+  --color-key: var(--key);
+  --color-key-edge: var(--key-edge);
+  --color-key-text: var(--key-text);
 
-  --radius: 10px;
-  --gap: 1rem;
+  --color-accent: var(--accent);
+  --color-accent-edge: var(--accent-edge);
+  --color-accent-text: var(--accent-text);
 
-  color-scheme: light dark;
+  --color-primary: var(--primary);
+  --color-primary-edge: var(--primary-edge);
+  --color-primary-text: var(--primary-text);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-danger: var(--danger);
+
+  --font-display: 'League Spartan', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+
+  --radius-key: 0.625rem;
+  --radius-panel: 0.625rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: #1b1d22;
-    --surface-sunken: #24262d;
-    --border: #383b44;
-    --border-strong: #4d515c;
-    --text: #eceef2;
-    --text-muted: #a2a8b6;
-    --accent: #6c8dff;
-    --accent-contrast: #10131a;
-    --accent-hover: #85a0ff;
-    --danger: #ff9d95;
-    --danger-surface: #3a1f1d;
-    --danger-border: #6b3430;
-    --success-surface: #1f2739;
-    --success-border: #33415f;
+/* Theme 3 — neon violet. Also the default, so the app looks right before the
+   stored preference is applied. */
+:root,
+[data-theme='3'] {
+  --app: #17062a;
+  --screen: #1e0936;
+  --keypad: #1d0934;
+
+  --key: #331b4d;
+  --key-edge: #881c9e;
+  --key-text: #ffe53d;
+
+  --accent: #56077c;
+  --accent-edge: #bc15f4;
+  --accent-text: #ffffff;
+
+  --primary: #00e0d1;
+  --primary-edge: #6cf9f2;
+  --primary-text: #1b2428;
+
+  --ink: #ffe53d;
+  --ink-muted: #c9a8f0;
+  --danger: #ff8b8b;
+}
+
+/* Theme 1 — dark navy. */
+[data-theme='1'] {
+  --app: #3a4664;
+  --screen: #181f33;
+  --keypad: #242d44;
+
+  --key: #eae3dc;
+  --key-edge: #b3a497;
+  --key-text: #434a59;
+
+  --accent: #647198;
+  --accent-edge: #414e73;
+  --accent-text: #ffffff;
+
+  --primary: #d03f2f;
+  --primary-edge: #93261a;
+  --primary-text: #ffffff;
+
+  --ink: #ffffff;
+  --ink-muted: #c0c7dc;
+  --danger: #ffb3aa;
+}
+
+/* Theme 2 — daylight. */
+[data-theme='2'] {
+  --app: #e6e6e6;
+  --screen: #ededed;
+  --keypad: #d2cdcd;
+
+  --key: #e5e4e1;
+  --key-edge: #a79e91;
+  --key-text: #35352c;
+
+  --accent: #378187;
+  --accent-edge: #1b6066;
+  --accent-text: #ffffff;
+
+  --primary: #c85402;
+  --primary-edge: #873901;
+  --primary-text: #ffffff;
+
+  --ink: #35352c;
+  --ink-muted: #5e5e50;
+  --danger: #a02b21;
+}
+
+@layer base {
+  html {
+    /* Stops the page from shifting sideways when the result line grows. */
+    scrollbar-gutter: stable;
   }
-}
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+  body {
+    background-color: var(--color-app);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    /* The typeface is numeric-heavy; equal digit widths stop the display from
+       jittering as values change. */
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--surface-sunken);
-  color: var(--text);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-.app {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--gap);
-  min-height: 100vh;
-  /* Comfortable on a phone, never edge to edge on a desktop monitor. */
-  padding: clamp(1rem, 4vw, 3rem) 1rem;
-}
-
-.app__header,
-.app__footer {
-  width: min(100%, 32rem);
-  text-align: center;
-}
-
-.app__title {
-  margin: 0 0 0.25rem;
-  font-size: clamp(1.5rem, 5vw, 2rem);
-  letter-spacing: -0.01em;
-}
-
-.app__subtitle {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.9375rem;
-}
-
-.app__main {
-  width: min(100%, 32rem);
-}
-
-.app__footer {
-  margin-top: auto;
-  padding-top: 1rem;
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-}
-
-.app__footer p {
-  margin: 0;
-}
-
-/* ---- Calculator card ----------------------------------------------------- */
-
-.calculator {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  padding: clamp(1rem, 4vw, 1.75rem);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background-color: var(--surface);
-}
-
-.calculator__form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.125rem;
+  /* A single obvious focus ring for every interactive element. */
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 3px;
+  }
 }
 
 /*
- * One column on narrow screens, two side by side as soon as there is room for
- * them. Using a container-relative minimum keeps the inputs legible instead of
- * squeezing them into a fixed breakpoint.
+ * The raised-key look is built from Tailwind utilities on the button itself
+ * (see components/Keypad.tsx): a solid inset bottom edge that shrinks as the
+ * key is pressed. Only the colour tokens live here.
  */
-.calculator__operands {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 1rem;
-}
-
-.calculator__submit {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: var(--radius);
-  background-color: var(--accent);
-  color: var(--accent-contrast);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 120ms ease-in-out;
-}
-
-.calculator__submit:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-}
-
-.calculator__submit:disabled {
-  cursor: progress;
-  opacity: 0.65;
-}
-
-/* ---- Fields -------------------------------------------------------------- */
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  min-width: 0;
-}
-
-.field__label {
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.field__input {
-  width: 100%;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background-color: var(--surface);
-  color: var(--text);
-  /* 1rem keeps iOS Safari from zooming in when the field takes focus. */
-  font-size: 1rem;
-  font-family: inherit;
-}
-
-.field__input:disabled {
-  background-color: var(--surface-sunken);
-  color: var(--text-muted);
-}
-
-.field__input--invalid {
-  border-color: var(--danger);
-}
-
-.field__error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 0.8125rem;
-}
-
-/* Make the focus ring obvious for keyboard users on every control. */
-.field__input:focus-visible,
-.calculator__submit:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* ---- Result panel -------------------------------------------------------- */
-
-.result {
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background-color: var(--surface-sunken);
-}
-
-.result--success {
-  border-color: var(--success-border);
-  background-color: var(--success-surface);
-}
-
-.result--error {
-  border-color: var(--danger-border);
-  background-color: var(--danger-surface);
-}
-
-.result__label {
-  margin: 0 0 0.25rem;
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  /* A long expression must wrap rather than widen the card. */
-  overflow-wrap: anywhere;
-}
-
-.result__message {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.9375rem;
-  overflow-wrap: anywhere;
-}
-
-.result--error .result__label,
-.result--error .result__message {
-  color: var(--danger);
-}
-
-.result__value {
-  display: block;
-  font-size: clamp(1.5rem, 6vw, 2rem);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-  }
-}

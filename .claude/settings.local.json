@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"=== utilidades de sombra 3D generadas ===\" *)",
+      "Read(//tmp/**)"
+    ]
+  }
+}
