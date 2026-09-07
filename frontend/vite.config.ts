@@ -21,10 +21,15 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
+  // A hosted free tier can take the best part of a minute to wake a sleeping
+  // container, so the client timeout is configurable per environment.
+  const requestTimeoutMs = Number(env.VITE_REQUEST_TIMEOUT_MS) || 8000;
+
   return {
     plugins: [react(), tailwindcss()],
     define: {
       __API_BASE_URL__: JSON.stringify(apiBaseUrl),
+      __REQUEST_TIMEOUT_MS__: JSON.stringify(requestTimeoutMs),
     },
     server: {
       port: 5173,

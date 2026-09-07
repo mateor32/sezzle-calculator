@@ -192,6 +192,35 @@ they explicitly ask for them to be shared.)*
 
 ---
 
+## 9. Deployment
+
+> ahora despleguemos la app el back y front ambas
+
+*(Now let's deploy the app, both the backend and the frontend.)*
+
+> despleguemos el back en render y front en vercel
+
+*(Let's deploy the backend to Render and the frontend to Vercel.)*
+
+**Outcome.** `render.yaml` and `frontend/vercel.json`, so both services are
+described in version control rather than clicked together in a web form, plus a
+deployment section in the README.
+
+Preparing for a hosted deployment surfaced two things worth fixing:
+
+- The container health check hard-coded port 8080, but a platform-as-a-service
+  injects its own `PORT`. It now reads the variable.
+- The client timeout was a fixed eight seconds, which is right for a local API
+  but not for a free tier that idles containers to sleep — the request that
+  wakes one can take close to a minute. The timeout is now configurable per
+  environment through `VITE_REQUEST_TIMEOUT_MS`.
+
+The deployment itself is gated on credentials that only the repository owner
+has, so the steps that need a Render or Vercel account are documented in the
+README rather than performed here.
+
+---
+
 ## How the prompts were used
 
 **The specification was detailed; the implementation decisions were not.** The

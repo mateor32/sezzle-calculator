@@ -1,11 +1,11 @@
 /**
  * Runtime configuration of the frontend.
  *
- * `__API_BASE_URL__` is replaced at build time by Vite with the value of the
- * `VITE_API_BASE_URL` environment variable. The `typeof` guard is what makes
- * the module safe outside a Vite build: reading an undeclared identifier throws,
- * but `typeof` on one does not, so the tests get the default without any
- * additional configuration.
+ * Both values are replaced at build time by Vite with the corresponding
+ * `VITE_*` environment variable (see vite.config.ts). The `typeof` guards are
+ * what make this module safe outside a Vite build: reading an undeclared
+ * identifier throws, but `typeof` on one does not, so the tests get the
+ * defaults without any additional configuration.
  */
 const DEFAULT_API_BASE_URL = 'http://localhost:8080/api';
 
@@ -15,8 +15,18 @@ export const API_BASE_URL: string =
     : DEFAULT_API_BASE_URL;
 
 /**
- * How long a calculation may take before the client gives up. The API is a
- * pure computation, so anything slower than this points at a network problem
- * rather than a slow response.
+ * How long a calculation may take before the client gives up.
+ *
+ * Against a local API anything slower than a few seconds points at a network
+ * problem rather than a slow response. It is configurable because a free tier
+ * host idles its containers to sleep, and the request that wakes one can take
+ * the best part of a minute — see the deployment notes in the README.
  */
-export const REQUEST_TIMEOUT_MS = 8000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 8000;
+
+export const REQUEST_TIMEOUT_MS: number =
+  typeof __REQUEST_TIMEOUT_MS__ === 'number' &&
+  Number.isFinite(__REQUEST_TIMEOUT_MS__) &&
+  __REQUEST_TIMEOUT_MS__ > 0
+    ? __REQUEST_TIMEOUT_MS__
+    : DEFAULT_REQUEST_TIMEOUT_MS;

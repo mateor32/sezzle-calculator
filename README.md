@@ -29,6 +29,7 @@ the implementation, the state model and the API behind it are original.
 - [API reference](#api-reference)
 - [API examples](#api-examples)
 - [Running the tests](#running-the-tests)
+- [Deployment](#deployment)
 - [Design decisions and assumptions](#design-decisions-and-assumptions)
 - [Configuration reference](#configuration-reference)
 
@@ -517,6 +518,100 @@ display formatter and digit grouping, the operation catalogue, the API client
 palette switch and its persistence, and the calculator itself: entering numbers,
 every operation, chained operations, client-side validation, each error path,
 the pending state and the keyboard shortcuts.
+
+---
+
+## Deployment
+
+The API is deployed to [Render](https://render.com) as a Docker service and the
+interface to [Vercel](https://vercel.com) as a static build. Both read from the
+same Git repository, so the repository has to be pushed to GitHub (or GitLab or
+Bitbucket) before either platform can build it.
+
+Two files describe the setup, so neither service is clicked together by hand:
+
+| File | Describes |
+| --- | --- |
+| [`render.yaml`](render.yaml) | The API service: Docker build, health check path, build filter |
+| [`frontend/vercel.json`](frontend/vercel.json) | The interface: build commands, SPA fallback, cache and security headers |
+
+### 1. Push the repository
+
+```bash
+git remote add origin https://github.com/<user>/<repository>.git
+git push -u origin main
+```
+
+### 2. Deploy the API to Render
+
+1. **New > Blueprint**, select the repository. Render reads `render.yaml` and
+   proposes the `calculator-api` service.
+2. Leave `CORS_ALLOWED_ORIGINS` empty for the first deploy; the Vercel URL does
+   not exist yet.
+3. Apply. The build runs `go vet` and the whole test suite before producing an
+   image, so a broken commit never reaches a running container.
+4. Note the service URL, for example `https://calculator-api.onrender.com`.
+
+Check it:
+
+```bash
+curl https://calculator-api.onrender.com/api/health
+# {"status":"ok"}
+```
+
+### 3. Deploy the interface to Vercel
+
+1. **Add New > Project**, select the same repository.
+2. Set **Root Directory** to `frontend`. This is the one setting that cannot
+   live in `vercel.json`; everything else is read from that file.
+3. Add two environment variables:
+
+   | Name | Value |
+   | --- | --- |
+   | `VITE_API_BASE_URL` | `https://calculator-api.onrender.com/api` |
+   | `VITE_REQUEST_TIMEOUT_MS` | `60000` |
+
+4. Deploy, and note the URL, for example `https://calculator.vercel.app`.
+
+Both values are compile-time constants. Changing either one needs a redeploy,
+not just a restart.
+
+### 4. Close the CORS loop
+
+The browser calls the API from the Vercel origin, so the API has to allow it.
+In the Render dashboard set:
+
+```
+CORS_ALLOWED_ORIGINS = https://calculator.vercel.app
+```
+
+Render restarts the service automatically. Until this is set the calculator
+loads but every calculation fails, because the browser refuses to hand the
+response to a page from a different origin.
+
+To allow Vercel preview deployments as well, give a comma separated list. There
+is no wildcard matching: each origin is compared exactly.
+
+### Free tier cold starts
+
+A free Render service is stopped after about fifteen minutes without traffic,
+and the request that wakes it can take close to a minute. That is why
+`VITE_REQUEST_TIMEOUT_MS` is raised to `60000` above; at the default of eight
+seconds the first calculation after an idle period would report a timeout that
+is not really a failure.
+
+If the first calculation still times out, load
+`https://<api-host>/api/health` once to wake the service, then retry. A paid
+instance, or any host that does not idle containers, removes the problem
+entirely.
+
+### Deploying somewhere else
+
+Nothing here is specific to these two platforms. The API is a single static
+binary in a container that reads `PORT` and `CORS_ALLOWED_ORIGINS` from the
+environment, and the interface is a directory of static files. Any container
+host and any static host will do; only the two environment variables and the
+CORS origin have to match up.
 
 ---
 

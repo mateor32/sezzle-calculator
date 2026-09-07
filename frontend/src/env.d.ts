@@ -1,7 +1,10 @@
 /**
- * Compile-time constant injected by Vite's `define` option (see vite.config.ts).
+ * Compile-time constants injected by Vite's `define` option (see
+ * vite.config.ts).
  *
- * It is declared as possibly undefined because the constant is not replaced in
- * the Jest environment, where `src/config.ts` falls back to a default.
+ * They are declared as possibly undefined because the constants are not
+ * replaced in the Jest environment, where `src/config.ts` falls back to its
+ * defaults.
  */
 declare const __API_BASE_URL__: string | undefined;
+declare const __REQUEST_TIMEOUT_MS__: number | undefined;

@@ -43,7 +43,10 @@ USER calculator
 ENV PORT=8080
 EXPOSE 8080
 
+# The probe reads $PORT rather than hard-coding 8080, because a platform-as-a-
+# service injects its own port at runtime. Written in shell form so the variable
+# is expanded; the exec form would pass it through literally.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://127.0.0.1:8080/api/health || exit 1
+    CMD wget --quiet --tries=1 --spider "http://127.0.0.1:${PORT}/api/health" || exit 1
 
 ENTRYPOINT ["/usr/local/bin/server"]

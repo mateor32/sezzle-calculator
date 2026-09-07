@@ -1,0 +1,45 @@
+# Render Blueprint for the calculator API.
+#
+# Render can read this file directly ("New > Blueprint" in the dashboard), which
+# means the service is described in version control rather than clicked together
+# in a web form.
+#
+# The frontend is not declared here: it is deployed to Vercel, which builds from
+# the same repository with the settings in frontend/vercel.json.
+
+services:
+  - type: web
+    name: calculator-api
+    runtime: docker
+
+    # The Dockerfile expects the backend directory as its build context, so the
+    # two paths are given separately.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+
+    plan: free
+    region: oregon
+
+    # Render polls this path and will not route traffic to an instance until it
+    # answers. The endpoint is deliberately cheap.
+    healthCheckPath: /api/health
+
+    # Only build when the backend actually changes; a frontend commit should not
+    # trigger a redeploy of the API.
+    buildFilter:
+      paths:
+        - backend/**
+        - render.yaml
+
+    envVars:
+      # Render injects its own PORT at runtime and the server binds whatever it
+      # is given, so PORT is deliberately not pinned here.
+      #
+      # CORS_ALLOWED_ORIGINS is set in the dashboard once the Vercel URL is
+      # known, because the browser calls this API from another origin. Use the
+      # exact origin, for example:
+      #   https://<project>.vercel.app
+      # Several origins can be given as a comma separated list, which is how a
+      # preview deployment is allowed alongside production.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
