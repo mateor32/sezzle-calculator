@@ -9,10 +9,29 @@
  */
 const DEFAULT_API_BASE_URL = 'http://localhost:8080/api';
 
-export const API_BASE_URL: string =
-  typeof __API_BASE_URL__ === 'string' && __API_BASE_URL__.length > 0
-    ? __API_BASE_URL__
-    : DEFAULT_API_BASE_URL;
+/** U+FEFF, written as an escape because the character itself is invisible. */
+const BYTE_ORDER_MARK = new RegExp('^\uFEFF');
+
+/**
+ * Strips a byte order mark and surrounding whitespace from a configured value.
+ *
+ * Environment variables routinely pick up either on the way in — a shell that
+ * writes UTF-8 with a BOM, a copied value with a trailing newline — and a
+ * leading BOM is particularly nasty here: it silently turns an absolute URL
+ * into a relative one, so requests go to the page's own origin instead of to
+ * the API and fail with a 405 that points nowhere near the real cause.
+ */
+export function cleanConfiguredValue(value: string): string {
+  return value.replace(BYTE_ORDER_MARK, '').trim();
+}
+
+export const API_BASE_URL: string = (() => {
+  if (typeof __API_BASE_URL__ !== 'string') {
+    return DEFAULT_API_BASE_URL;
+  }
+  const cleaned = cleanConfiguredValue(__API_BASE_URL__);
+  return cleaned.length > 0 ? cleaned : DEFAULT_API_BASE_URL;
+})();
 
 /**
  * How long a calculation may take before the client gives up.
