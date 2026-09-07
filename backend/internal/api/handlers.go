@@ -95,11 +95,23 @@ func (s *server) handleNotFound(w http.ResponseWriter, r *http.Request) {
 // allowMethod rejects any method other than the one a route accepts. The check
 // is explicit rather than delegated to the method patterns of ServeMux so that
 // the rejection carries the same JSON envelope as every other error.
+//
+// A GET route also answers HEAD, because HTTP defines HEAD as identical to GET
+// without a response body and net/http discards the body for us. Monitoring
+// tools rely on this: a container health check running `wget --spider`, for
+// instance, sends HEAD and would otherwise be told 405 by a perfectly healthy
+// service.
 func allowMethod(method string, next http.HandlerFunc) http.HandlerFunc {
+	allowsHead := method == http.MethodGet
+
 	allow := method + ", OPTIONS"
+	if allowsHead {
+		allow = method + ", HEAD, OPTIONS"
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != method {
+		permitted := r.Method == method || (allowsHead && r.Method == http.MethodHead)
+		if !permitted {
 			w.Header().Set("Allow", allow)
 			writeError(w, http.StatusMethodNotAllowed, CodeMethodNotAllowed,
 				fmt.Sprintf("%s is not allowed on this endpoint, use %s", r.Method, method), "")

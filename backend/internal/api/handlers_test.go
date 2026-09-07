@@ -308,7 +308,9 @@ func TestRoutingRejectsTheWrongMethod(t *testing.T) {
 		{"GET on calculate", http.MethodGet, "/api/calculate", "POST, OPTIONS"},
 		{"PUT on calculate", http.MethodPut, "/api/calculate", "POST, OPTIONS"},
 		{"DELETE on calculate", http.MethodDelete, "/api/calculate", "POST, OPTIONS"},
-		{"POST on health", http.MethodPost, "/api/health", "GET, OPTIONS"},
+		{"HEAD on calculate", http.MethodHead, "/api/calculate", "POST, OPTIONS"},
+		{"POST on health", http.MethodPost, "/api/health", "GET, HEAD, OPTIONS"},
+		{"DELETE on health", http.MethodDelete, "/api/health", "GET, HEAD, OPTIONS"},
 	}
 
 	for _, tt := range tests {
@@ -360,6 +362,38 @@ func TestHealth(t *testing.T) {
 	}
 	if payload.Status != "ok" {
 		t.Errorf("status = %q, want %q", payload.Status, "ok")
+	}
+}
+
+// HTTP defines HEAD as identical to GET without a body, and container health
+// checks depend on it: `wget --spider` sends HEAD, so a GET-only health
+// endpoint reports a perfectly healthy service as down.
+func TestHealthAnswersHead(t *testing.T) {
+	t.Parallel()
+
+	recorder := do(t, newTestServer(t), http.MethodHead, "/api/health", "", nil)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+	if contentType := recorder.Header().Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
+		t.Errorf("Content-Type = %q, want an application/json value", contentType)
+	}
+}
+
+// The preflight must advertise HEAD alongside the methods that carry a body.
+func TestPreflightAdvertisesHead(t *testing.T) {
+	t.Parallel()
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/health", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("Access-Control-Request-Method", http.MethodHead)
+
+	recorder := httptest.NewRecorder()
+	newTestServer(t).ServeHTTP(recorder, req)
+
+	if got := recorder.Header().Get("Access-Control-Allow-Methods"); !strings.Contains(got, http.MethodHead) {
+		t.Errorf("Access-Control-Allow-Methods = %q, want it to include %q", got, http.MethodHead)
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 // allowedMethodsHeader lists the methods advertised during a CORS preflight.
-const allowedMethodsHeader = "GET, POST, OPTIONS"
+const allowedMethodsHeader = "GET, HEAD, POST, OPTIONS"
 
 // preflightMaxAgeSeconds tells the browser how long it may cache the result of
 // a preflight, which keeps the OPTIONS traffic of a chatty UI down.
