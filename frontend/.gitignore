@@ -1,0 +1,10 @@
+# Vercel CLI local state: the project link and any environment variables it
+# pulls down. Both are per-developer and one of them holds credentials.
+.vercel
+
+# Local environment overrides. The pattern is deliberately narrower than the
+# `.env*` the Vercel CLI writes by default, which would also hide .env.example —
+# and that file is documentation, not configuration.
+.env
+.env.local
+.env.*.local
