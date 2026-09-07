@@ -32,6 +32,9 @@ the implementation, the state model and the API behind it are original.
 - [Design decisions and assumptions](#design-decisions-and-assumptions)
 - [Configuration reference](#configuration-reference)
 
+The prompts used to build this project with AI assistance are recorded in
+[PROMPTS.md](PROMPTS.md).
+
 ---
 
 ## Project structure
@@ -101,6 +104,7 @@ the implementation, the state model and the API behind it are original.
 │   └── vite.config.ts                    React, Tailwind and the injected API URL
 │
 ├── docker-compose.yml               Runs both services together
+├── PROMPTS.md                       The AI prompts used to build this
 └── README.md
 ```
 
